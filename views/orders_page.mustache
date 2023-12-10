@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            margin-top: 16px;
+            margin-bottom: 16px;
+        }
+        .card {
+            margin-top: 16px;
+            margin-bottom: 16px;
+        }
+        .order-summary-modal {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 16px;
+            text-align: center;
+        }
+        .snackbar {
+            position: fixed;
+            bottom: 16px;
+            right: 16px;
+            background-color: #333;
+            color: #fff;
+            padding: 16px;
+            border-radius: 4px;
+            z-index: 1;
+        }
+    </style>
+    <title>Aplikasi Order Kopi</title>
+</head>
+<body>
+
+<div class="container">
+    <div class="row">
+        {{#items}}
+            <div class="col-lg-6 col-md-6 col-sm-12">
+                <div class="card" id="coffee2">
+                    <img src="./images/background.jpg" class="card-img-top" alt="Coffee Image 2">
+                    <div class="card-body">
+                        <h5 class="card-title">{{Name}}</h5>
+                        <p class="card-text">Nikmati secangkir kopi spesial kami yang dihasilkan dari biji kopi pilihan.</p>
+                        <p class="card-text">Harga: IDR {{Price}}</p>
+                        <div class="order-controls justify-content-end">
+                            <button class="btn btn-light shadow" onclick="removeFromOrder('{{ID}}', '{{Price}}')">-</button>
+                            <span class="quantity mx-4" id="quantity_{{ID}}">0</span>
+                            <button class="btn btn-dark" onclick="addToOrder('{{ID}}', '{{Price}}')">+</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {{/items}}
+    </div>
+
+    <button id="button-checkout" type="button" class="snackbar btn-dark mt-3" data-toggle="modal" data-target="#orderSummaryModal" hidden>
+        Checkout
+    </button>
+
+    <!-- Modal -->
+    <div class="modal fade" id="orderSummaryModal" tabindex="-1" role="dialog" aria-labelledby="orderSummaryModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="orderSummaryModalLabel">Order Summary</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body order-summary-modal">
+                    <ul id="order-items" class="list-group"></ul>
+                    <p>Total Items: <span id="total-items">0</span></p>
+                    <p>Total Price: IDR <span id="total-price">0.00</span></p>
+                </div>
+                <div class="modal-footer">
+                    <button id="button-order-pay" type="button" class="btn btn-dark">Bayar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mustache.js/4.0.1/mustache.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    const buttonCheckout = document.getElementById("button-checkout");
+    const buttonOrderPay = document.getElementById("button-order-pay");
+    const orderItems = {};
+    const itemPrices = {
+        coffee1: 5.00,
+        coffee2: 5.00,
+        // Tambahkan harga item lainnya sesuai kebutuhan
+    };
+
+    function addToOrder(itemId, itemPrice) {
+        if (orderItems[itemId]) {
+            orderItems[itemId]++;
+        } else {
+            orderItems[itemId] = 1;
+        }
+
+        updateQuantityDisplay(itemId);
+        updateOrderList(itemId, itemPrice);
+    }
+
+    function removeFromOrder(itemId, itemPrice) {
+        if (orderItems[itemId] && orderItems[itemId] > 0) {
+            orderItems[itemId]--;
+        }
+
+        updateQuantityDisplay(itemId);
+        updateOrderList(itemId, itemPrice);
+    }
+
+    function updateQuantityDisplay(itemId) {
+        const quantityElement = document.getElementById(`quantity_${itemId}`);
+        if (quantityElement) {
+            quantityElement.textContent = orderItems[itemId] || 0;
+        }
+    }
+
+    function updateOrderList(itemId, itemPrice) {
+        const orderListElement = document.getElementById('order-items');
+        const totalItemsElement = document.getElementById('total-items');
+        const totalPriceElement = document.getElementById('total-price');
+
+        if (orderListElement && totalItemsElement && totalPriceElement) {
+            orderListElement.innerHTML = '';
+
+            let totalItems = 0;
+            let totalPrice = 0;
+
+            for (const itemId in orderItems) {
+                const quantity = orderItems[itemId];
+                const price = parseInt(itemPrice[itemId]) || 0;
+
+                totalItems += quantity;
+                totalPrice += quantity * price;
+
+                const listItem = document.createElement('li');
+                listItem.classList.add('list-group-item');
+                listItem.textContent = `Kopi Spesial ${itemId}: ${quantity}`;
+                orderListElement.appendChild(listItem);
+            }
+
+            totalItemsElement.textContent = totalItems;
+            totalPriceElement.textContent = totalPrice.toFixed(2);
+        }
+
+        toggleCheckoutButtonVisibility(totalItemsElement.textContent);
+    }
+
+    function toggleCheckoutButtonVisibility(totalItems) {
+        const buttonCheckout = document.getElementById("button-checkout");
+        if (buttonCheckout) {
+            if (totalItems !== "0") {
+                buttonCheckout.removeAttribute("hidden");
+            } else {
+                buttonCheckout.setAttribute("hidden", true);
+            }
+        }
+    }
+
+    buttonOrderPay.addEventListener("click", () => {
+        const data = orderItems;
+
+        fetch("/orders/pay", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data),
+        })
+        .then(res => res.json())
+        .then(results => {
+            if (results.status === 200) {
+                Swal.fire({
+                    title: "Thank You!",
+                    text: results.message,
+                    icon: "success"
+                })
+                .then(result => {
+                    if (result.isConfirmed || result.isDismissed) {
+                        window.location.reload();
+                    }
+                })
+            }
+        })
+        .catch(err => {
+            console.log(err);
+        })
+    })
+</script>
+
+</body>
+</html>
