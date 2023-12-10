@@ -17,6 +17,30 @@ func OrdersRoutes(app *fiber.App) {
 			"items": items,
 		})
 	})
+	app.Get("/item/:id", func(c *fiber.Ctx) error {
+		items := models.Items
+
+		itemIdParam := c.Params("id")
+		itemId, err := strconv.Atoi(itemIdParam)
+		if err != nil {
+			return c.JSON(fiber.Map{
+				"status": fiber.StatusBadRequest,
+				"error":  err.Error(),
+			})
+		}
+		var itemToSend models.Item
+
+		for index, item := range items {
+			if item.ID == itemId {
+				itemToSend = models.Items[index]
+			}
+		}
+
+		return c.JSON(fiber.Map{
+			"status": c.Response().StatusCode(),
+			"data":   itemToSend,
+		})
+	})
 	app.Post("/orders/pay", func(c *fiber.Ctx) error {
 		var formData map[string]int
 
